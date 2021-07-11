@@ -1,6 +1,8 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, \
                                         PermissionsMixin
+from django.conf import settings
+from datetime import datetime
 
 
 class UserManager(BaseUserManager):
@@ -35,3 +37,41 @@ class User(AbstractBaseUser, PermissionsMixin):
     objects = UserManager()
 
     USERNAME_FIELD = 'email'
+
+
+class Post(models.Model):
+    """Post by user"""
+    description = models.CharField(max_length=255)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE
+    )
+    created_at = models.DateTimeField(default=datetime.now, blank=True)
+
+    def __str__(self):
+        return self.description
+
+
+class UserFollowing(models.Model):
+
+    user_id = models.ForeignKey(User,
+                                related_name="following",
+                                on_delete=models.CASCADE)
+    following_user_id = models.ForeignKey(User,
+                                          related_name="followers",
+                                          on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                    fields=[
+                        'user_id',
+                        'following_user_id'
+                    ],
+                    name="unique_followers"
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.user} follows {self.following_user_id}"
